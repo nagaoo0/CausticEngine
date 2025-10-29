@@ -16,6 +16,19 @@
             "problemMatcher": []
         },
         {
+            "label": "Build Shaders",
+            "type": "shell",
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": ["-ExecutionPolicy", "Bypass", "-File", ".\\scripts\\Build-Shaders.ps1", "-BuildConfig", "${input:buildConfig}"],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Build Debug",
             "type": "shell",
             "command": "msbuild",
@@ -30,13 +43,14 @@
                 "isDefault": true
             },
             "presentation": {
+                
                 "echo": true,
                 "reveal": "always",
                 "focus": false,
                 "panel": "shared"
             },
             "problemMatcher": "$msCompile",
-            "dependsOn": "Generate Project Files"
+            "dependsOn": [ "Generate Project Files", "Build Shaders" ]
         },
         {
             "label": "Build Release",
@@ -56,7 +70,7 @@
                 "panel": "shared"
             },
             "problemMatcher": "$msCompile",
-            "dependsOn": "Generate Project Files"
+            "dependsOn": [ "Generate Project Files", "Build Shaders" ]
         },
         {
             "label": "Clean",
@@ -76,6 +90,15 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "buildConfig",
+            "type": "pickString",
+            "description": "Which build configuration to use when building shaders?",
+            "options": ["Debug", "Release"],
+            "default": "Debug"
         }
     ]
 }

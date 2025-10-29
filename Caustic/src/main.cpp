@@ -4,6 +4,8 @@
 #include "Walnut/Image.h"
 #include "Walnut/UI/UI.h"
 
+#include "VulkanEngineLayer.h"
+
 class ExampleLayer : public Walnut::Layer
 {
 public:
@@ -60,8 +62,14 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 	spec.CustomTitlebar = true;
 
 	Walnut::Application* app = new Walnut::Application(spec);
+	
+	// Create both layers - ExampleLayer for About modal, VulkanEngineLayer for the engine
 	std::shared_ptr<ExampleLayer> exampleLayer = std::make_shared<ExampleLayer>();
+	std::shared_ptr<VulkanEngineLayer> engineLayer = std::make_shared<VulkanEngineLayer>();
 	app->PushLayer(exampleLayer);
+	app->PushLayer(engineLayer);
+	
+	// Restore original menu structure and add new engine-specific items
 	app->SetMenubarCallback([app, exampleLayer]()
 	{
 		if (ImGui::BeginMenu("File"))
@@ -69,6 +77,19 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 			if (ImGui::MenuItem("Exit"))
 			{
 				app->Close();
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Engine"))
+		{
+			if (ImGui::MenuItem("Reload Shaders"))
+			{
+				// TODO: Add shader reloading functionality
+			}
+			if (ImGui::MenuItem("Reset Camera"))
+			{
+				// TODO: Add camera reset functionality
 			}
 			ImGui::EndMenu();
 		}

@@ -5,7 +5,11 @@ project "Caustic"
    targetdir "bin/%{cfg.buildcfg}"
    staticruntime "off"
 
-   files { "src/**.h", "src/**.cpp" }
+   files { 
+      "src/**.h", 
+      "src/**.cpp",
+      "shaders/**"
+   }
 
    includedirs
    {
@@ -17,6 +21,11 @@ project "Caustic"
 
       "%{IncludeDir.VulkanSDK}",
       "%{IncludeDir.glm}",
+      "%{IncludeDir.spdlog}",
+      
+      -- Local engine includes
+      "src/",
+      "src/Engine/"
    }
 
     links
