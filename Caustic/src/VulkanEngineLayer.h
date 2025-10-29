@@ -26,6 +26,8 @@ private:
     void RenderEngine();
     void RenderUI();
 
+    void SetClearColor(const glm::vec4& color);
+
 private:
     // Your Vulkan engine
     std::unique_ptr<veng::WalnutGraphics> m_Graphics;

@@ -116,6 +116,10 @@ void VulkanEngineLayer::RenderEngine()
 {
     if (!m_EngineInitialized)
         return;
+
+    // Set background color (can be made user-configurable)
+    static glm::vec4 bgColor = glm::vec4(0.0f, 0.0f, 0.0f,1.0f);
+    m_Graphics->SetClearColor(bgColor);
         
     // Triangle rendering is now ENABLED!
     try {
@@ -131,48 +135,43 @@ void VulkanEngineLayer::RenderEngine()
     // Display the rendered triangle viewport with live image
     ImGui::Begin("Viewport");
     
-    
-    // Display the actual rendered image
+    // Detect viewport size and trigger resize if needed
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-    viewportSize.y -= 1; // Leave space for controls
+    viewportSize.y -=0; // Leave space for controls
+    
+    // Only resize if size is valid and different from current
+    if (m_Graphics && viewportSize.x >0 && viewportSize.y >0) {
+    uint32_t newWidth = static_cast<uint32_t>(viewportSize.x);
+    uint32_t newHeight = static_cast<uint32_t>(viewportSize.y);
+    m_Graphics->Resize(newWidth, newHeight);
+    }
     
     if (auto renderedImage = m_Graphics->GetRenderedImage()) {
         ImGui::Image(renderedImage->GetDescriptorSet(), viewportSize);
     } else {
         ImGui::Text("Viewport RenderTarget size: %.0f x %.0f", viewportSize.x, viewportSize.y);
-    }
+    }       
     
     ImGui::End();
 }
 
 void VulkanEngineLayer::RenderUI()
-{
+{    
     // Advanced Engine Statistics window
     if (m_ShowEngineStats)
     {
-        ImGui::Begin("Advanced Engine Statistics", &m_ShowEngineStats);
+        ImGui::Begin("stat", &m_ShowEngineStats);
         
         // Performance metrics
-        ImGui::Text("PERFORMANCE METRICS");
         ImGui::Separator();
         ImGui::Text("Frame Time: %.3f ms", m_LastFrameTime * 1000.0f);
         ImGui::Text("FPS: %.1f", 1.0f / m_LastFrameTime);
-        
-        // Graphics statistics
-        //ImGui::Separator();
-        //ImGui::Text("GRAPHICS STATISTICS");
-        //ImGui::Text("Triangles Rendered: 1");
-        //ImGui::Text("Draw Calls: 1");
-        //ImGui::Text("Vertices: 3");
-        //ImGui::Text("Shader Stages: 2 (Vertex + Fragment)");
-        
-        // Engine status
-        ImGui::Separator();
-        ImGui::Text("ENGINE STATUS");
+
         ImGui::Text("Engine Initialized: %s", m_EngineInitialized ? "YES" : "NO");
-        
+
         ImGui::Separator();
         ImGui::Checkbox("Show Demo Window", &m_ShowDemoWindow);
+
         
         ImGui::End();
     }
