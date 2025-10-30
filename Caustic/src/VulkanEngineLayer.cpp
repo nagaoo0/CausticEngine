@@ -68,14 +68,15 @@ void VulkanEngineLayer::InitializeEngine()
         veng::Vertex{glm::vec3{0.5f, 0.5f, 0.0f}, glm::vec3{1.0f, 1.0f, 0.0f}},    
         veng::Vertex{glm::vec3{-0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}},   
     };
-    
+
     m_VertexBuffer = m_Graphics->CreateVertexBuffer(vertices);
-    
+
     // Define indices for two triangles forming the quad
     std::array<std::uint32_t, 6> indices = {
         0, 1, 2,  // First triangle (Bottom-left, Bottom-right, Top-right)
         2, 3, 0   // Second triangle (Bottom-left, Top-right, Top-left)
     };
+
     m_IndexBuffer = m_Graphics->CreateIndexBuffer(indices);
     
     // Proper camera setup for normal 3D rendering
@@ -199,16 +200,33 @@ void VulkanEngineLayer::ResetCamera()
     if (!m_EngineInitialized)
         return;
 
-    float aspectRatio = static_cast<float>(m_Graphics->GetRenderWidth()) / static_cast<float>(m_Graphics->GetRenderHeight());
+    // Use the current viewport dimensions to calculate the aspect ratio
+    uint32_t renderWidth = m_Graphics->GetRenderHeight();
+    uint32_t renderHeight = m_Graphics->GetRenderWidth();
+
+    if (renderWidth ==0 || renderHeight ==0)
+        return; // Avoid division by zero
+
+    float aspectRatio = static_cast<float>(renderWidth) / static_cast<float>(renderHeight);
     std::cout << "Aspect Ratio: " << aspectRatio << std::endl;
 
-    glm::mat4 projection = glm::perspective(glm::radians(60.0f), aspectRatio, 0.1f, 100.0f);
+    // Use a fixed vertical FOV and adjust the width based on the aspect ratio
+    float verticalFOV = glm::radians(45.0f); // Fixed vertical FOV
+    glm::mat4 projection = glm::perspective(verticalFOV, aspectRatio,0.1f,100.0f);
     projection[1][1] *= -1; // Flip Y-axis for Vulkan
 
-    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f)); // Move closer to center
+    // Dynamically adjust the camera position based on viewport dimensions
+    glm::vec3 cameraPosition = glm::vec3(0.0f,0.0f, -5.0f); // Fixed distance from the object
+    glm::vec3 cameraTarget = glm::vec3(0.0f,0.0f,0.0f); // Center of the view
+    glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f); // Up direction
+
+    glm::mat4 view = glm::lookAt(cameraPosition, cameraTarget, cameraUp);
+
+    // Log matrices for debugging
     LogMat4(projection, "Projection Matrix");
     LogMat4(view, "View Matrix");
 
+    // Update the graphics engine with the new matrices
     if (m_Graphics)
         m_Graphics->SetViewProjection(view, projection);
 }
