@@ -18,28 +18,31 @@ namespace Walnut::UI {
 		// members of a static "Theme" class and add a quick ImGui window to adjust the colour values
 		namespace Theme
 		{
-			constexpr auto accent = IM_COL32(236, 158, 36, 255);
-			constexpr auto highlight = IM_COL32(39, 185, 242, 255);
-			constexpr auto niceBlue = IM_COL32(83, 232, 254, 255);
-			constexpr auto compliment = IM_COL32(78, 151, 166, 255);
-			constexpr auto background = IM_COL32(36, 36, 36, 255);
-			constexpr auto backgroundDark = IM_COL32(26, 26, 26, 255);
-			constexpr auto titlebar = IM_COL32(21, 21, 21, 255);
-			constexpr auto propertyField = IM_COL32(15, 15, 15, 255);
-			constexpr auto text = IM_COL32(192, 192, 192, 255);
-			constexpr auto textBrighter = IM_COL32(210, 210, 210, 255);
-			constexpr auto textDarker = IM_COL32(128, 128, 128, 255);
-			constexpr auto textError = IM_COL32(230, 51, 51, 255);
-			constexpr auto muted = IM_COL32(77, 77, 77, 255);
-			constexpr auto groupHeader = IM_COL32(47, 47, 47, 255);
-			constexpr auto selection = IM_COL32(237, 192, 119, 255);
-			constexpr auto selectionMuted = IM_COL32(237, 201, 142, 23);
-			constexpr auto backgroundPopup = IM_COL32(50, 50, 50, 255);
-			constexpr auto error = IM_COL32(222, 43, 43, 255);
-			constexpr auto validPrefab = IM_COL32(82, 179, 222, 255);
-			constexpr auto invalidPrefab = IM_COL32(222, 43, 43, 255);
-			constexpr auto missingMesh = IM_COL32(230, 102, 76, 255);
-			constexpr auto meshNotSet = IM_COL32(250, 101, 23, 255);
+			constexpr auto accent = IM_COL32(30, 200, 96, 255); // Slightly Less Saturated Spotify Green
+			constexpr auto highlight = IM_COL32(29, 170, 84, 255); // Slightly Less Saturated Darker Green
+			constexpr auto niceBlue = IM_COL32(25, 20, 20, 255); // Unchanged
+			constexpr auto compliment = IM_COL32(40, 40, 40, 255); // Unchanged
+			constexpr auto background = IM_COL32(18, 18, 18, 255); // Unchanged
+			constexpr auto backgroundDark = IM_COL32(13, 13, 13, 255); // Unchanged
+			constexpr auto titlebar = IM_COL32(24, 24, 24, 255); // Unchanged
+			constexpr auto propertyField = IM_COL32(28, 28, 28, 255); // Unchanged
+			constexpr auto text = IM_COL32(255, 255, 255, 255); // Unchanged
+			constexpr auto textBrighter = IM_COL32(255, 255, 255, 255); // Unchanged
+			constexpr auto textDarker = IM_COL32(179, 179, 179, 255); // Unchanged
+			constexpr auto textError = IM_COL32(255, 69, 58, 255); // Unchanged
+			constexpr auto muted = IM_COL32(105, 105, 105, 255); // Unchanged
+			constexpr auto groupHeader = IM_COL32(55, 60, 65, 255); // Unchanged
+			constexpr auto selection = IM_COL32(255, 200, 0, 255); // Slightly Less Saturated Gold
+			constexpr auto selectionMuted = IM_COL32(255, 210, 128, 128); // Slightly Less Saturated Muted Gold
+			constexpr auto backgroundPopup = IM_COL32(60, 63, 72, 255); // Unchanged
+			constexpr auto error = IM_COL32(255, 90, 71, 255); // Slightly Less Saturated Tomato Red
+			constexpr auto validPrefab = IM_COL32(50, 190, 50, 255); // Slightly Less Saturated Lime Green
+			constexpr auto invalidPrefab = IM_COL32(255, 69, 58, 255); // Unchanged
+			constexpr auto missingMesh = IM_COL32(255, 130, 0, 255); // Slightly Less Saturated Dark Orange
+			constexpr auto meshNotSet = IM_COL32(255, 150, 0, 255); // Slightly Less Saturated Orange
+			constexpr auto tabActive = IM_COL32(30, 200, 96, 255); // Slightly Less Saturated Spotify Green
+			constexpr auto tabInactive = IM_COL32(40, 40, 40, 128); // Unchanged
+			constexpr auto tabHover = IM_COL32(30, 200, 96, 255); // Slightly Less Saturated Spotify Green
 		}
 	}
 

@@ -683,9 +683,9 @@ namespace Walnut {
 
 	void Application::UI_DrawTitlebar(float& outTitlebarHeight)
 	{
-		const float titlebarHeight = 58.0f;
+		const float titlebarHeight = 48.0f;
 		const bool isMaximized = IsMaximized();
-		float titlebarVerticalOffset = isMaximized ? -6.0f : 0.0f;
+		float titlebarVerticalOffset = isMaximized ? -2.0f : 0.0f;
 		const ImVec2 windowPadding = ImGui::GetCurrentWindow()->WindowPadding;
 
 		ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y + titlebarVerticalOffset));
@@ -702,7 +702,7 @@ namespace Walnut {
 		{
 			const int logoWidth = 48;// m_LogoTex->GetWidth();
 			const int logoHeight = 48;// m_LogoTex->GetHeight();
-			const ImVec2 logoOffset(16.0f + windowPadding.x, 5.0f + windowPadding.y + titlebarVerticalOffset);
+			const ImVec2 logoOffset( windowPadding.x, windowPadding.y + titlebarVerticalOffset);
 			const ImVec2 logoRectStart = { ImGui::GetItemRectMin().x + logoOffset.x, ImGui::GetItemRectMin().y + logoOffset.y };
 			const ImVec2 logoRectMax = { logoRectStart.x + logoWidth, logoRectStart.y + logoHeight };
 			fgDrawList->AddImage(m_AppHeaderIcon->GetDescriptorSet(), logoRectStart, logoRectMax);
@@ -737,7 +737,7 @@ namespace Walnut {
 			ImGui::SuspendLayout();
 			{
 				ImGui::SetItemAllowOverlap();
-				const float logoHorizontalOffset = 16.0f * 2.0f + 48.0f + windowPadding.x;
+				const float logoHorizontalOffset = 48.0f + windowPadding.x;
 				ImGui::SetCursorPos(ImVec2(logoHorizontalOffset, 6.0f + titlebarVerticalOffset));
 				UI_DrawMenubar();
 
@@ -752,8 +752,8 @@ namespace Walnut {
 			// Centered Window title
 			ImVec2 currentCursorPos = ImGui::GetCursorPos();
 			ImVec2 textSize = ImGui::CalcTextSize(m_Specification.Name.c_str());
-			ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() * 0.5f - textSize.x * 0.5f, 2.0f + windowPadding.y + 6.0f));
-			ImGui::Text("%s", m_Specification.Name.c_str()); // Draw title
+			ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() * 0.5f - textSize.x * 0.5f, windowPadding.y + 11.0f));
+			//ImGui::Text("%s", m_Specification.Name.c_str()); // Draw title
 			ImGui::SetCursorPos(currentCursorPos);
 		}
 

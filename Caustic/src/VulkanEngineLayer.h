@@ -19,12 +19,17 @@ public:
     virtual void OnUIRender() override;
     virtual void OnAttach() override;
     virtual void OnDetach() override;
+    void ResetCamera();
+
+    
 
 private:
     void InitializeEngine();
     void CleanupEngine();
     void RenderEngine();
     void RenderUI();
+    ImVec2 GetViewportResolution() const;
+
 
     void SetClearColor(const glm::vec4& color);
 

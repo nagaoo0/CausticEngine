@@ -39,6 +39,9 @@ class WalnutGraphics final {
   // Set the clear color for the background
   void SetClearColor(const glm::vec4& color) { m_ClearColor = color; }
 
+  uint32_t GetRenderWidth() const;
+  uint32_t GetRenderHeight() const;
+
  private:
   void CreateRenderTargets();
   void CreateRenderPass();

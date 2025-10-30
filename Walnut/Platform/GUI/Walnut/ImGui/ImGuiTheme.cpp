@@ -27,9 +27,9 @@ namespace Walnut::UI {
 
 		// Tabs
 		colors[ImGuiCol_Tab] = ImGui::ColorConvertU32ToFloat4(Colors::Theme::titlebar);
-		colors[ImGuiCol_TabHovered] = ImColor(255, 225, 135, 30);
-		colors[ImGuiCol_TabActive] = ImColor(255, 225, 135, 60);
-		colors[ImGuiCol_TabUnfocused] = ImGui::ColorConvertU32ToFloat4(Colors::Theme::titlebar);
+		colors[ImGuiCol_TabHovered] = ImGui::ColorConvertU32ToFloat4(Colors::Theme::tabHover);
+		colors[ImGuiCol_TabActive] = ImGui::ColorConvertU32ToFloat4(Colors::Theme::tabActive);
+		colors[ImGuiCol_TabUnfocused] = ImGui::ColorConvertU32ToFloat4(Colors::Theme::tabInactive);
 		colors[ImGuiCol_TabUnfocusedActive] = colors[ImGuiCol_TabHovered];
 
 		// Title
@@ -81,7 +81,8 @@ namespace Walnut::UI {
 
 		//========================================================
 		/// Style
-		style.FrameRounding = 2.5f;
+		style.FrameRounding = 0.5f;
+		style.TabRounding = 0.5f;
 		style.FrameBorderSize = 1.0f;
 		style.IndentSpacing = 11.0f;
 	}

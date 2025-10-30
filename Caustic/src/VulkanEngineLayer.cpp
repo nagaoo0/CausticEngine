@@ -4,6 +4,9 @@
 #include <imgui.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+// Include the LogMat4 function from WalnutGraphics.cpp
+extern void LogMat4(const glm::mat4& m, const char* name);
+
 VulkanEngineLayer::VulkanEngineLayer()
 {
 }
@@ -58,25 +61,35 @@ void VulkanEngineLayer::InitializeEngine()
         throw std::runtime_error("Failed to initialize Vulkan graphics engine");
     }
     
-    // Create a simple triangle - DIRECT CLIP SPACE coordinates for testing
-    std::array<veng::Vertex, 3> vertices = {
-        veng::Vertex{glm::vec3{0.0f, -0.5f, 0.0f}, glm::vec3{1.0f, 0.0f, 0.0f}},  // Red bottom
-        veng::Vertex{glm::vec3{0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}},   // Green top-right
-        veng::Vertex{glm::vec3{-0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}},  // Blue top-left
+    // Create a quad face using two triangles in world space
+    std::array<veng::Vertex, 4> vertices = {
+        veng::Vertex{glm::vec3{-0.5f, -0.5f, 0.0f}, glm::vec3{0.0f, 0.0f, 0.0f}},  
+        veng::Vertex{glm::vec3{0.5f, -0.5f, 0.0f}, glm::vec3{1.0f, 0.0f, 0.0f}},   
+        veng::Vertex{glm::vec3{0.5f, 0.5f, 0.0f}, glm::vec3{1.0f, 1.0f, 0.0f}},    
+        veng::Vertex{glm::vec3{-0.5f, 0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}},   
     };
     
     m_VertexBuffer = m_Graphics->CreateVertexBuffer(vertices);
     
-    std::array<std::uint32_t, 3> indices = {0, 2, 1};  // Counter-clockwise winding order
+    // Define indices for two triangles forming the quad
+    std::array<std::uint32_t, 6> indices = {
+        0, 1, 2,  // First triangle (Bottom-left, Bottom-right, Top-right)
+        2, 3, 0   // Second triangle (Bottom-left, Top-right, Top-left)
+    };
     m_IndexBuffer = m_Graphics->CreateIndexBuffer(indices);
     
     // Proper camera setup for normal 3D rendering
-    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
-    glm::mat4 projection = glm::perspective(glm::radians(60.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Graphics->GetRenderWidth()) / static_cast<float>(m_Graphics->GetRenderHeight()),0.1f,10.0f);
+    projection[1][1] *= -1; // Flip Y-axis for Vulkan
+    glm::mat4 view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     m_Graphics->SetViewProjection(view, projection);
 
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+    // Set the model matrix to position the quad in world space
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     m_Graphics->SetModelMatrix(model);
+    
+    // Log the model matrix for debugging
+    LogMat4(model, "Model Matrix");
     
     m_EngineInitialized = true;
 }
@@ -118,63 +131,50 @@ void VulkanEngineLayer::RenderEngine()
         return;
 
     // Set background color (can be made user-configurable)
-    static glm::vec4 bgColor = glm::vec4(0.0f, 0.0f, 0.0f,1.0f);
+    static glm::vec4 bgColor = glm::vec4(0.0f,0.0f,0.0f,1.0f);
     m_Graphics->SetClearColor(bgColor);
-        
-    // Triangle rendering is now ENABLED!
+
     try {
         if (m_Graphics->BeginFrame()) {
-            m_Graphics->RenderIndexedBuffer(m_VertexBuffer, m_IndexBuffer, 3);
+            // Render the entire quad by using the correct index count (6)
+            m_Graphics->RenderIndexedBuffer(m_VertexBuffer, m_IndexBuffer,6);
             m_Graphics->EndFrame();
         }
     } catch (const std::exception& e) {
         std::cout << "Rendering error: " << e.what() << std::endl;
         // Continue running but skip this frame
     }
-    
+
     // Display the rendered triangle viewport with live image
     ImGui::Begin("Viewport");
-    
+
     // Detect viewport size and trigger resize if needed
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
     viewportSize.y -=0; // Leave space for controls
-    
-    // Only resize if size is valid and different from current
-    if (m_Graphics && viewportSize.x >0 && viewportSize.y >0) {
+
+    static uint32_t lastWidth =0, lastHeight =0;
     uint32_t newWidth = static_cast<uint32_t>(viewportSize.x);
     uint32_t newHeight = static_cast<uint32_t>(viewportSize.y);
-    m_Graphics->Resize(newWidth, newHeight);
+
+    if (m_Graphics && newWidth >0 && newHeight >0) {
+        if (newWidth != lastWidth || newHeight != lastHeight) {
+            m_Graphics->Resize(newWidth, newHeight);
+            ResetCamera(); // Reset camera on resize to maintain aspect ratio
+            lastWidth = newWidth;
+            lastHeight = newHeight;
+        }
     }
-    
+
+    // Display the rendered image from the graphics engine
     if (auto renderedImage = m_Graphics->GetRenderedImage()) {
         ImGui::Image(renderedImage->GetDescriptorSet(), viewportSize);
-    } else {
-        ImGui::Text("Viewport RenderTarget size: %.0f x %.0f", viewportSize.x, viewportSize.y);
-    }       
-    
+    }
     ImGui::End();
 }
 
 void VulkanEngineLayer::RenderUI()
 {    
-    // Advanced Engine Statistics window
-    if (m_ShowEngineStats)
-    {
-        ImGui::Begin("stat", &m_ShowEngineStats);
-        
-        // Performance metrics
-        ImGui::Separator();
-        ImGui::Text("Frame Time: %.3f ms", m_LastFrameTime * 1000.0f);
-        ImGui::Text("FPS: %.1f", 1.0f / m_LastFrameTime);
 
-        ImGui::Text("Engine Initialized: %s", m_EngineInitialized ? "YES" : "NO");
-
-        ImGui::Separator();
-        ImGui::Checkbox("Show Demo Window", &m_ShowDemoWindow);
-
-        
-        ImGui::End();
-    }
     
     // ImGui demo window for reference
     if (m_ShowDemoWindow)
@@ -183,31 +183,52 @@ void VulkanEngineLayer::RenderUI()
     }
     
     // Advanced Engine Controls with real-time parameters
-    if (ImGui::Begin("Advanced Engine Controls"))
-    {
-        ImGui::Text("RENDERING CONTROLS");
-        ImGui::Separator();
-        
-        if (ImGui::Button("Reload Shaders"))
-        {
-            std::cout << "Shader reload requested (feature coming soon)" << std::endl;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Reset Camera"))
-        {
-            // Reset view projection
-            glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
-            glm::mat4 projection = glm::perspective(glm::radians(60.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-            projection[1][1] *= -1.0f;
-            m_Graphics->SetViewProjection(view, projection);
-            std::cout << "Camera reset to default position" << std::endl;
-        }
-        
+    if (ImGui::Begin("Debug"))
+    {        
         ImGui::Separator();
         ImGui::Text("DEBUG WINDOWS");
-        ImGui::Checkbox("Show Advanced Statistics", &m_ShowEngineStats);
         ImGui::Checkbox("Show ImGui Demo", &m_ShowDemoWindow);
         
         ImGui::End();
+    }
+}
+
+
+void VulkanEngineLayer::ResetCamera()
+{
+    if (!m_EngineInitialized)
+        return;
+
+    float aspectRatio = static_cast<float>(m_Graphics->GetRenderWidth()) / static_cast<float>(m_Graphics->GetRenderHeight());
+    std::cout << "Aspect Ratio: " << aspectRatio << std::endl;
+
+    glm::mat4 projection = glm::perspective(glm::radians(60.0f), aspectRatio, 0.1f, 100.0f);
+    projection[1][1] *= -1; // Flip Y-axis for Vulkan
+
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f)); // Move closer to center
+    LogMat4(projection, "Projection Matrix");
+    LogMat4(view, "View Matrix");
+
+    if (m_Graphics)
+        m_Graphics->SetViewProjection(view, projection);
+}
+
+ImVec2 VulkanEngineLayer::GetViewportResolution() const
+{
+    if (!m_EngineInitialized)
+        return ImVec2(0.0f, 0.0f);
+
+    ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+    return ImVec2(viewportSize.x, viewportSize.y);
+}
+
+// Add a helper function to log4x4 matrices for debugging
+static void LogMat4(const glm::mat4& m, const char* name) {
+    std::cout << name << ":\n";
+    for (int row =0; row <4; ++row) {
+        for (int col =0; col <4; ++col) {
+            std::cout << m[col][row] << (col ==3 ? "" : " ");
+        }
+        std::cout << "\n";
     }
 }

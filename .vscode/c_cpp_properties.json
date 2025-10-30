@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Win32",
+            "name": "x64",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/Caustic/src",
@@ -11,6 +11,7 @@
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/yaml-cpp/include",
                 "${workspaceFolder}/Walnut/Source",
+                "${workspaceFolder}/Walnut/Source/Walnut",
                 "${workspaceFolder}/Walnut/Platform/GUI",
                 "C:/VulkanSDK/*/Include"
             ],

@@ -514,7 +514,8 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  rasterizer.rasterizerDiscardEnable = VK_FALSE;
  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
  rasterizer.lineWidth =1.0f;
- rasterizer.cullMode = VK_CULL_MODE_BACK_BIT; // Re-enable back face culling
+ // Re-enable backface culling in the Vulkan pipeline
+ rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
  rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -527,8 +528,8 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  // Depth and stencil testing
  VkPipelineDepthStencilStateCreateInfo depthStencil{};
  depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
- depthStencil.depthTestEnable = VK_FALSE; // DISABLE depth testing for debugging
- depthStencil.depthWriteEnable = VK_FALSE;
+ depthStencil.depthTestEnable = VK_TRUE; // Enable depth testing
+ depthStencil.depthWriteEnable = VK_TRUE; // Enable depth writes
  depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
  depthStencil.depthBoundsTestEnable = VK_FALSE;
  depthStencil.stencilTestEnable = VK_FALSE;
@@ -782,9 +783,11 @@ void WalnutGraphics::BeginCommands() {
  renderPassInfo.renderArea.offset = {0,0};
  renderPassInfo.renderArea.extent = {m_RenderWidth, m_RenderHeight};
 
- std::array<VkClearValue,1> clearValues{};
+ std::array<VkClearValue,2> clearValues{};
  // Use the configured clear color
  clearValues[0].color = {{m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a}};
+ // Ensure the depth buffer is cleared to1.0f (farthest depth)
+ clearValues[1].depthStencil = {1.0f,0}; // Clear depth to1.0f
 
  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
  renderPassInfo.pClearValues = clearValues.data();
@@ -817,6 +820,7 @@ VkViewport WalnutGraphics::GetViewport() {
  viewport.height = static_cast<float>(m_RenderHeight);
  viewport.minDepth =0.0f;
  viewport.maxDepth =1.0f;
+
  return viewport;
 }
 
@@ -824,6 +828,7 @@ VkRect2D WalnutGraphics::GetScissor() {
  VkRect2D scissor{};
  scissor.offset = {0,0};
  scissor.extent = {m_RenderWidth, m_RenderHeight};
+
  return scissor;
 }
 
@@ -840,12 +845,8 @@ void WalnutGraphics::SetModelMatrix(glm::mat4 model) {
 }
 
 void WalnutGraphics::SetViewProjection(glm::mat4 view, glm::mat4 projection) {
- // Log view/projection matrices only for first few frames or once on init
- if (!m_LoggedInitialVP || m_FrameCount <= m_LogFramesLimit) {
- LogMat4(view, "View matrix");
- LogMat4(projection, "Projection matrix");
- m_LoggedInitialVP = true;
- }
+ // Correct aspect ratio
+ projection[1][1] *= -1; // Flip Y-axis for Vulkan
 
  UniformTransformations transformations{view, projection};
  if (!m_UniformBufferLocation) {
@@ -884,14 +885,7 @@ void WalnutGraphics::RenderIndexedBuffer(BufferHandle vertex_buffer, BufferHandl
  VkDeviceSize offset =0;
 
  // choose which pipeline to bind: during the initial debug window, prefer the no-cull pipeline
- VkPipeline pipelineToBind = m_Pipeline;
- if (m_PipelineNoCull != VK_NULL_HANDLE) {
- auto now = std::chrono::steady_clock::now();
- float elapsed = std::chrono::duration<float>(now - m_StartTime).count();
- if (elapsed < m_DebugNoCullDuration) {
- pipelineToBind = m_PipelineNoCull;
- }
- }
+ VkPipeline pipelineToBind = m_PipelineNoCull != VK_NULL_HANDLE ? m_PipelineNoCull : m_Pipeline;
 
  VkCommandBuffer cmd = m_CommandBuffers[m_CurrentFrame];
 
@@ -1190,6 +1184,14 @@ void WalnutGraphics::Resize(uint32_t width, uint32_t height) {
  m_RenderWidth = width;
  m_RenderHeight = height;
  RecreateRenderTargets();
+}
+
+uint32_t WalnutGraphics::GetRenderWidth() const {
+ return m_RenderWidth;
+}
+
+uint32_t WalnutGraphics::GetRenderHeight() const {
+ return m_RenderHeight;
 }
 
 } // namespace veng
