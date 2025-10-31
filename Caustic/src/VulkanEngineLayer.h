@@ -20,8 +20,7 @@ public:
     virtual void OnAttach() override;
     virtual void OnDetach() override;
     void ResetCamera();
-
-    
+    void ResetCamera(uint32_t renderWidth, uint32_t renderHeight);
 
 private:
     void InitializeEngine();
@@ -51,4 +50,21 @@ private:
     // UI state
     bool m_ShowDemoWindow = false;
     bool m_ShowEngineStats = true;
+
+    // Camera/settings (moved from cpp globals)
+    struct CameraSettings {
+        float fovDegrees = 45.0f;
+        float fitMargin = 1.15f;
+        float nearClip = 0.1f;
+        glm::vec3 preferredDir = glm::vec3(2.0f, 2.0f, 2.0f);
+        float farMultiplier = 10.0f;
+    } m_CameraSettings;
+
+    // Runtime camera state
+    glm::vec3 m_CurrentCameraPosition = glm::vec3(2.0f, 2.0f, 2.0f);
+    glm::vec3 m_CurrentCameraTarget = glm::vec3(0.0f);
+
+    // Last viewport size from ImGui
+    uint32_t m_LastViewportWidth = 0;
+    uint32_t m_LastViewportHeight = 0;
 };

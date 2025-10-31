@@ -491,8 +491,8 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  VkViewport viewport{};
  viewport.x =0.0f;
  viewport.y =0.0f;
- viewport.width = (float) m_RenderWidth;
- viewport.height = (float) m_RenderHeight;
+ viewport.width = (float)m_RenderWidth;
+ viewport.height = (float)m_RenderHeight;
  viewport.minDepth =0.0f;
  viewport.maxDepth =1.0f;
 
@@ -503,9 +503,17 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  VkPipelineViewportStateCreateInfo viewportState{};
  viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
  viewportState.viewportCount =1;
- viewportState.pViewports = &viewport;
+ // Do not provide static viewports/scissors when using dynamic state
+ viewportState.pViewports = nullptr;
  viewportState.scissorCount =1;
- viewportState.pScissors = &scissor;
+ viewportState.pScissors = nullptr;
+
+ // Enable dynamic viewport and scissor so BeginCommands can set the correct size at draw time
+ VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+ VkPipelineDynamicStateCreateInfo dynamicState{};
+ dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+ dynamicState.dynamicStateCount = static_cast<uint32_t>(std::size(dynamicStates));
+ dynamicState.pDynamicStates = dynamicStates;
 
  // Rasterizer
  VkPipelineRasterizationStateCreateInfo rasterizer{};
@@ -582,7 +590,7 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  fragShaderStageInfo.module = fragShaderModule;
  fragShaderStageInfo.pName = "main";
 
- VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+ VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
  // Create graphics pipeline
  VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -599,6 +607,8 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  pipelineInfo.layout = m_PipelineLayout;
  pipelineInfo.renderPass = m_RenderPass;
  pipelineInfo.subpass =0;
+ // Attach dynamic state so viewport/scissor can be set at draw time
+ pipelineInfo.pDynamicState = &dynamicState;
 
  // Create the regular pipeline (back-face culling)
  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -620,8 +630,9 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  vkDestroyShaderModule(m_Device, fragShaderModule, nullptr);
  vkDestroyShaderModule(m_Device, vertShaderModule, nullptr);
  
- std::cout << "WalnutGraphics pipeline layout created successfully!" << std::endl;
- std::cout << "Graphics pipeline with shaders created successfully!" << std::endl;
+ // Removed verbose informational logs to reduce console spam in normal runs.
+ // std::cout << "WalnutGraphics pipeline layout created successfully!" << std::endl;
+ // std::cout << "Graphics pipeline with shaders created successfully!" << std::endl;
 }
 
 void WalnutGraphics::CreateFramebuffers() {
@@ -845,8 +856,8 @@ void WalnutGraphics::SetModelMatrix(glm::mat4 model) {
 }
 
 void WalnutGraphics::SetViewProjection(glm::mat4 view, glm::mat4 projection) {
- // Correct aspect ratio
- projection[1][1] *= -1; // Flip Y-axis for Vulkan
+ // NOTE: Do not flip Y here. The caller should apply Vulkan Y flip once if needed.
+ // projection[1][1] *= -1; // Removed duplicate Y-flip to prevent double-flipping
 
  UniformTransformations transformations{view, projection};
  if (!m_UniformBufferLocation) {
@@ -855,6 +866,14 @@ void WalnutGraphics::SetViewProjection(glm::mat4 view, glm::mat4 projection) {
  }
 
  std::memcpy(m_UniformBufferLocation, &transformations, sizeof(UniformTransformations));
+
+ // Removed verbose matrix upload logging. Keep only in deep debug builds if needed.
+ // #ifndef NDEBUG
+ // std::cout << "Uploaded View matrix:\n";
+ // LogMat4(view, "View");
+ // std::cout << "Uploaded Projection matrix:\n";
+ // LogMat4(projection, "Projection");
+ // #endif
 }
 
 void WalnutGraphics::RenderBuffer(BufferHandle handle, std::uint32_t vertex_count) {
