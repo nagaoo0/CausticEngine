@@ -58,19 +58,26 @@ void VulkanEngineLayer::InitializeEngine()
  }
 
  // Create a quad face using two triangles in world space, with texcoords
- std::array<veng::Vertex,4> vertices = {
- veng::Vertex{glm::vec3{-0.5f, -0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{0.0f,1.0f}},
- veng::Vertex{glm::vec3{0.5f, -0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{1.0f,1.0f}},
- veng::Vertex{glm::vec3{0.5f,0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{1.0f,0.0f}},
- veng::Vertex{glm::vec3{-0.5f,0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{0.0f,0.0f}},
+ std::array<veng::Vertex,8> vertices = {
+     veng::Vertex{glm::vec3{-0.7f, -0.7f, -0.1f}, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec2{0.0f, 1.0f}}, // Red
+     veng::Vertex{glm::vec3{ 0.0f, -0.7f, -0.1f}, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec2{1.0f, 1.0f}},
+     veng::Vertex{glm::vec3{ 0.0f,  0.0f, -0.1f}, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec2{1.0f, 0.0f}},
+     veng::Vertex{glm::vec3{-0.7f,  0.0f, -0.1f}, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec2{0.0f, 0.0f}},
+     veng::Vertex{glm::vec3{ 0.0f, 0.0f, 0.1f }, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec2{0.0f, 1.0f}}, // Blue
+     veng::Vertex{glm::vec3{ 0.7f, 0.0f, 0.1f}, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec2{1.0f, 1.0f}},
+     veng::Vertex{glm::vec3{ 0.7f, 0.7f, 0.1f}, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec2{1.0f, 0.0f}},
+     veng::Vertex{glm::vec3{ 0.0f, 0.7f, 0.1f}, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec2{0.0f, 0.0f}}
  };
+
 
  m_VertexBuffer = m_Graphics->CreateVertexBuffer(vertices);
 
  // Define indices for two triangles forming the quad
- std::array<std::uint32_t,6> indices = {
+ std::array<std::uint32_t,12> indices = {
 0,1,2, // First triangle (Bottom-left, Bottom-right, Top-right)
-2,3,0 // Second triangle (Bottom-left, Top-right, Top-left)
+2,3,0, // Second triangle (Bottom-left, Top-right, Top-left)
+4,5,6, // Third triangle (Bottom-left, Bottom-right, Top-right)
+6,7,4  // Fourth triangle (Bottom-left, Top-right, Top-left)
  };
 
  m_IndexBuffer = m_Graphics->CreateIndexBuffer(indices);
@@ -143,8 +150,8 @@ void VulkanEngineLayer::RenderEngine()
 
  try {
  if (m_Graphics->BeginFrame()) {
- // Render the entire quad by using the correct index count (6)
- m_Graphics->RenderIndexedBuffer(m_VertexBuffer, m_IndexBuffer,6);
+ // Render both quads by using the correct index count (12)
+ m_Graphics->RenderIndexedBuffer(m_VertexBuffer, m_IndexBuffer, 12);
  m_Graphics->EndFrame();
  }
  } catch (const std::exception& e) {

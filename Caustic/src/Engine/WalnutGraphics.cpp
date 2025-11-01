@@ -93,6 +93,24 @@ void WalnutGraphics::Shutdown() {
  // NOTE: texture resources are owned by Texture helper (m_Texture). Do not access
  // leftover texture members that are not declared in the header.
 
+ // Destroy default texture resources before destroying device
+ if (m_DefaultTextureSampler != VK_NULL_HANDLE) {
+ vkDestroySampler(m_Device, m_DefaultTextureSampler, nullptr);
+ m_DefaultTextureSampler = VK_NULL_HANDLE;
+ }
+ if (m_DefaultTextureImageView != VK_NULL_HANDLE) {
+ vkDestroyImageView(m_Device, m_DefaultTextureImageView, nullptr);
+ m_DefaultTextureImageView = VK_NULL_HANDLE;
+ }
+ if (m_DefaultTextureImage != VK_NULL_HANDLE) {
+ vkDestroyImage(m_Device, m_DefaultTextureImage, nullptr);
+ m_DefaultTextureImage = VK_NULL_HANDLE;
+ }
+ if (m_DefaultTextureImageMemory != VK_NULL_HANDLE) {
+ vkFreeMemory(m_Device, m_DefaultTextureImageMemory, nullptr);
+ m_DefaultTextureImageMemory = VK_NULL_HANDLE;
+ }
+
  // Destroy graphics pipelines first
  if (m_Pipeline != VK_NULL_HANDLE) {
  vkDestroyPipeline(m_Device, m_Pipeline, nullptr);
@@ -158,7 +176,7 @@ void WalnutGraphics::Shutdown() {
 
  for (auto sem : m_ImageAvailableSemaphores) {
  if (sem != VK_NULL_HANDLE) {
- vkDestroySemaphore(m_Device, sem, nullptr);
+vkDestroySemaphore(m_Device, sem, nullptr);
  }
  }
  m_ImageAvailableSemaphores.clear();
@@ -438,20 +456,36 @@ void WalnutGraphics::CreateRenderPass() {
  colorAttachmentRef.attachment =0;
  colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+ // Depth attachment
+ VkAttachmentDescription depthAttachment{};
+ depthAttachment.format = VK_FORMAT_D32_SFLOAT;
+ depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+ depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+ depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // We don't need to read depth after rendering
+ depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+ depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+ depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+ depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+ VkAttachmentReference depthAttachmentRef{};
+ depthAttachmentRef.attachment =1;
+ depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
  VkSubpassDescription subpass{};
  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
  subpass.colorAttachmentCount =1;
  subpass.pColorAttachments = &colorAttachmentRef;
+ subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
  VkSubpassDependency dependency{};
  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
  dependency.dstSubpass =0;
- dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+ dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
  dependency.srcAccessMask =0;
- dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
- dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+ dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+ dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
- std::array<VkAttachmentDescription,1> attachments = { colorAttachment };
+ std::array<VkAttachmentDescription,2> attachments = { colorAttachment, depthAttachment };
 
  VkRenderPassCreateInfo renderPassInfo{};
  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -614,7 +648,7 @@ void WalnutGraphics::CreateGraphicsPipeline() {
 }
 
 void WalnutGraphics::CreateFramebuffers() {
- std::array<VkImageView,1> attachments = { m_ColorImageView };
+ std::array<VkImageView,2> attachments = { m_ColorImageView, m_DepthImageView };
 
  VkFramebufferCreateInfo framebufferInfo{};
  framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
