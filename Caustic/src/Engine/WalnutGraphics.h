@@ -10,6 +10,8 @@
 
 namespace veng {
 
+class Texture; // forward
+
 class WalnutGraphics final {
  public:
   WalnutGraphics();
@@ -42,7 +44,7 @@ class WalnutGraphics final {
   uint32_t GetRenderWidth() const;
   uint32_t GetRenderHeight() const;
 
-  // Texture loading
+  // Texture loading - delegates to Texture helper
   void LoadTextureFromFile(const std::string& filename);
 
  private:
@@ -115,11 +117,8 @@ class WalnutGraphics final {
   BufferHandle m_UniformBuffer;
   void* m_UniformBufferLocation = nullptr;
 
-  // Texture resources
-  VkImage m_TextureImage = VK_NULL_HANDLE;
-  VkDeviceMemory m_TextureImageMemory = VK_NULL_HANDLE;
-  VkImageView m_TextureImageView = VK_NULL_HANDLE;
-  VkSampler m_TextureSampler = VK_NULL_HANDLE;
+  // Texture helper (owns image/view/sampler and mipmaps)
+  std::unique_ptr<Texture> m_Texture;
 
   // Render state
   uint32_t m_RenderWidth =800;
@@ -134,6 +133,8 @@ class WalnutGraphics final {
   bool m_LoggedInitialVP = false;
   // Current model matrix stored so push constants can be applied when recording
   glm::mat4 m_CurrentModel = glm::mat4(1.0f);
+
+  friend class Texture; // allow Texture helper access to private helpers
 };
 
 } // namespace veng
