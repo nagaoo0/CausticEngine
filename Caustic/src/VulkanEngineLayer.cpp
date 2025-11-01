@@ -138,14 +138,7 @@ void VulkanEngineLayer::RenderEngine()
  if (!m_EngineInitialized)
  return;
 
- // Compute background color based on camera view direction in world space.
- glm::vec3 viewDir = glm::normalize(m_CurrentCameraTarget - m_CurrentCameraPosition);
- // Map direction (-1..1) to color (0..1) with a small gamma to make colors nicer
- glm::vec3 bg = glm::clamp((viewDir *0.5f) + glm::vec3(0.5f),0.0f,1.0f);
- // Slight tonemapping / brighten
- bg = glm::pow(bg, glm::vec3(0.9f));
-
- glm::vec4 bgColor = glm::vec4(bg,1.0f);
+ glm::vec4 bgColor = glm::vec4(0.0f, 0.0f, 0.0f,1.0f);
  m_Graphics->SetClearColor(bgColor);
 
  try {

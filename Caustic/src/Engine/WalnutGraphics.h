@@ -78,6 +78,10 @@ class WalnutGraphics final {
   VkViewport GetViewport();
   VkRect2D GetScissor();
 
+  // Helpers used by Texture for layout transitions and buffer->image copies
+  void TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
+  void CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
   // Walnut/Vulkan objects (obtained from Walnut Application)
   VkInstance m_Instance = VK_NULL_HANDLE;
   VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;

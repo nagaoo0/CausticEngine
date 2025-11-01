@@ -246,8 +246,7 @@ void WalnutGraphics::EndFrame() {
  VkMemoryAllocateInfo allocInfo{};
  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
  allocInfo.allocationSize = memRequirements.size;
- allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, 
- VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+ allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
  
  if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &stagingBufferMemory) == VK_SUCCESS) {
  vkBindBufferMemory(m_Device, stagingBuffer, stagingBufferMemory,0);
@@ -271,8 +270,7 @@ void WalnutGraphics::EndFrame() {
  barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
  barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
  
- vkCmdPipelineBarrier(copyCmd, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 
- VK_PIPELINE_STAGE_TRANSFER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
+ vkCmdPipelineBarrier(copyCmd, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
  
  // Copy image to buffer
  VkBufferImageCopy region{};
@@ -284,10 +282,9 @@ void WalnutGraphics::EndFrame() {
  region.imageSubresource.baseArrayLayer =0;
  region.imageSubresource.layerCount =1;
  region.imageOffset = {0,0,0};
- region.imageExtent = {m_RenderWidth, m_RenderHeight,1};
+ region.imageExtent = { m_RenderWidth, m_RenderHeight,1 };
  
- vkCmdCopyImageToBuffer(copyCmd, m_ColorImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
- stagingBuffer,1, &region);
+ vkCmdCopyImageToBuffer(copyCmd, m_ColorImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer,1, &region);
  
  // Transition back
  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -295,8 +292,7 @@ void WalnutGraphics::EndFrame() {
  barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
  
- vkCmdPipelineBarrier(copyCmd, VK_PIPELINE_STAGE_TRANSFER_BIT, 
- VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
+ vkCmdPipelineBarrier(copyCmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
  
  EndTransientCommandBuffer(copyCmd);
  
@@ -438,11 +434,6 @@ void WalnutGraphics::CreateRenderPass() {
  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
- // We intentionally omit a depth attachment here to temporarily disable
- // depth testing during debugging. The pipeline's depth/stencil state
- // already has depth tests disabled, but removing the depth attachment
- // ensures the render pass won't perform depth operations.
-
  VkAttachmentReference colorAttachmentRef{};
  colorAttachmentRef.attachment =0;
  colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -460,7 +451,7 @@ void WalnutGraphics::CreateRenderPass() {
  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
- std::array<VkAttachmentDescription,1> attachments = {colorAttachment};
+ std::array<VkAttachmentDescription,1> attachments = { colorAttachment };
 
  VkRenderPassCreateInfo renderPassInfo{};
  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -501,55 +492,48 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  viewport.width = (float)m_RenderWidth;
  viewport.height = (float)m_RenderHeight;
  viewport.minDepth =0.0f;
- viewport.maxDepth = 1.0f;
+ viewport.maxDepth =1.0f;
 
  VkRect2D scissor{};
  scissor.offset = {0,0};
- scissor.extent = {m_RenderWidth, m_RenderHeight};
+ scissor.extent = { m_RenderWidth, m_RenderHeight };
 
  VkPipelineViewportStateCreateInfo viewportState{};
  viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
  viewportState.viewportCount =1;
- // Do not provide static viewports/scissors when using dynamic state
  viewportState.pViewports = nullptr;
  viewportState.scissorCount =1;
  viewportState.pScissors = nullptr;
 
- // Enable dynamic viewport and scissor so BeginCommands can set the correct size at draw time
  VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
  VkPipelineDynamicStateCreateInfo dynamicState{};
  dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
  dynamicState.dynamicStateCount = static_cast<uint32_t>(std::size(dynamicStates));
  dynamicState.pDynamicStates = dynamicStates;
 
- // Rasterizer
  VkPipelineRasterizationStateCreateInfo rasterizer{};
  rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
  rasterizer.depthClampEnable = VK_FALSE;
  rasterizer.rasterizerDiscardEnable = VK_FALSE;
  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
  rasterizer.lineWidth =1.0f;
- // Re-enable backface culling in the Vulkan pipeline
  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
  rasterizer.depthBiasEnable = VK_FALSE;
 
- // Multisampling
  VkPipelineMultisampleStateCreateInfo multisampling{};
  multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
  multisampling.sampleShadingEnable = VK_FALSE;
  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
- // Depth and stencil testing
  VkPipelineDepthStencilStateCreateInfo depthStencil{};
  depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
- depthStencil.depthTestEnable = VK_TRUE; // Enable depth testing
- depthStencil.depthWriteEnable = VK_TRUE; // Enable depth writes
+ depthStencil.depthTestEnable = VK_TRUE;
+ depthStencil.depthWriteEnable = VK_TRUE;
  depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
  depthStencil.depthBoundsTestEnable = VK_FALSE;
  depthStencil.stencilTestEnable = VK_FALSE;
 
- // Color blending
  VkPipelineColorBlendAttachmentState colorBlendAttachment{};
  colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
  colorBlendAttachment.blendEnable = VK_FALSE;
@@ -560,13 +544,11 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  colorBlending.attachmentCount =1;
  colorBlending.pAttachments = &colorBlendAttachment;
 
- // Push constants
  VkPushConstantRange pushConstantRange{};
  pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
  pushConstantRange.offset =0;
  pushConstantRange.size = sizeof(glm::mat4);
 
- // Pipeline layout
  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
  pipelineLayoutInfo.setLayoutCount =1;
@@ -578,7 +560,6 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  throw std::runtime_error("Failed to create pipeline layout!");
  }
 
- // Load shaders
  auto vertShaderCode = ReadFile("shaders/basic.vert.spv");
  auto fragShaderCode = ReadFile("shaders/basic.frag.spv");
 
@@ -599,7 +580,6 @@ void WalnutGraphics::CreateGraphicsPipeline() {
 
  VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
- // Create graphics pipeline
  VkGraphicsPipelineCreateInfo pipelineInfo{};
  pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
  pipelineInfo.stageCount =2;
@@ -614,38 +594,27 @@ void WalnutGraphics::CreateGraphicsPipeline() {
  pipelineInfo.layout = m_PipelineLayout;
  pipelineInfo.renderPass = m_RenderPass;
  pipelineInfo.subpass =0;
- // Attach dynamic state so viewport/scissor can be set at draw time
  pipelineInfo.pDynamicState = &dynamicState;
 
- // Create the regular pipeline (back-face culling)
  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
  pipelineInfo.pRasterizationState = &rasterizer;
  if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE,1, &pipelineInfo, nullptr, &m_Pipeline) != VK_SUCCESS) {
  throw std::runtime_error("Failed to create graphics pipeline!");
  }
 
- // Create a second pipeline variant with culling disabled for early-debug overlay
  rasterizer.cullMode = VK_CULL_MODE_NONE;
  pipelineInfo.pRasterizationState = &rasterizer;
  if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE,1, &pipelineInfo, nullptr, &m_PipelineNoCull) != VK_SUCCESS) {
- // If creating a no-cull pipeline fails, keep running without it
  m_PipelineNoCull = VK_NULL_HANDLE;
  std::cout << "Warning: failed to create no-cull debug pipeline; continuing without it." << std::endl;
  }
 
- // Clean up shader modules
  vkDestroyShaderModule(m_Device, fragShaderModule, nullptr);
  vkDestroyShaderModule(m_Device, vertShaderModule, nullptr);
- 
- // Removed verbose informational logs to reduce console spam in normal runs.
- // std::cout << "WalnutGraphics pipeline layout created successfully!" << std::endl;
- // std::cout << "Graphics pipeline with shaders created successfully!" << std::endl;
 }
 
 void WalnutGraphics::CreateFramebuffers() {
- std::array<VkImageView,1> attachments = {
- m_ColorImageView
- };
+ std::array<VkImageView,1> attachments = { m_ColorImageView };
 
  VkFramebufferCreateInfo framebufferInfo{};
  framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -673,7 +642,6 @@ void WalnutGraphics::CreateCommandPool() {
 }
 
 void WalnutGraphics::CreateCommandBuffers() {
- // Allocate a command buffer per frame-in-flight
  m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
  VkCommandBufferAllocateInfo allocInfo{};
@@ -716,7 +684,6 @@ void WalnutGraphics::CreateDescriptorSetLayout() {
  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
  uboLayoutBinding.pImmutableSamplers = nullptr;
 
- // Add combined image sampler binding at binding =1
  VkDescriptorSetLayoutBinding samplerLayoutBinding{};
  samplerLayoutBinding.binding =1;
  samplerLayoutBinding.descriptorCount =1;
@@ -724,7 +691,7 @@ void WalnutGraphics::CreateDescriptorSetLayout() {
  samplerLayoutBinding.pImmutableSamplers = nullptr;
  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
- std::array<VkDescriptorSetLayoutBinding,2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+ std::array<VkDescriptorSetLayoutBinding,2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 
  VkDescriptorSetLayoutCreateInfo layoutInfo{};
  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -781,10 +748,6 @@ void WalnutGraphics::CreateDescriptorSet() {
 
  std::vector<VkWriteDescriptorSet> descriptorWrites = { uboWrite };
 
- // Prepare image/sampler descriptor using the loaded texture if available,
- // otherwise ensure we have a valid default1x1 texture to bind so that the
- // descriptor update is always given valid handles (validation layers and
- // some drivers reject null imageView/sampler in a combined image sampler write).
  VkDescriptorImageInfo imageInfo{};
  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -792,7 +755,6 @@ void WalnutGraphics::CreateDescriptorSet() {
  imageInfo.imageView = m_Texture->GetImageView();
  imageInfo.sampler = m_Texture->GetSampler();
  } else {
- // Create a small default texture on demand and bind it
  CreateDefaultTexture();
  imageInfo.imageView = m_DefaultTextureImageView;
  imageInfo.sampler = m_DefaultTextureSampler;
@@ -814,7 +776,6 @@ void WalnutGraphics::CreateDescriptorSet() {
 void WalnutGraphics::LoadTextureFromFile(const std::string& filename) {
  m_Texture = std::make_unique<Texture>(this);
  m_Texture->LoadFromFile(filename);
- // After creating texture, update descriptor set if allocated
  if (m_DescriptorSet != VK_NULL_HANDLE) {
  m_Texture->WriteDescriptor(m_Device, m_DescriptorSet,1);
  }
@@ -823,9 +784,7 @@ void WalnutGraphics::LoadTextureFromFile(const std::string& filename) {
 void WalnutGraphics::CreateUniformBuffers() {
  VkDeviceSize bufferSize = sizeof(UniformTransformations);
 
- m_UniformBuffer = CreateBuffer(bufferSize, 
- VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
- VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+ m_UniformBuffer = CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
  if (vkMapMemory(m_Device, m_UniformBuffer.memory,0, bufferSize,0, &m_UniformBufferLocation) != VK_SUCCESS) {
  m_UniformBufferLocation = nullptr;
@@ -843,35 +802,27 @@ void WalnutGraphics::BeginCommands() {
 
  vkBeginCommandBuffer(cmd, &beginInfo);
 
- // Begin render pass
  VkRenderPassBeginInfo renderPassInfo{};
  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
  renderPassInfo.renderPass = m_RenderPass;
  renderPassInfo.framebuffer = m_Framebuffer;
- renderPassInfo.renderArea.offset = {0,0 };
+ renderPassInfo.renderArea.offset = {0,0};
  renderPassInfo.renderArea.extent = { m_RenderWidth, m_RenderHeight };
 
  std::array<VkClearValue,2> clearValues{};
- // Use the configured clear color
  clearValues[0].color = {{ m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a }};
- // Ensure the depth buffer is cleared to1.0f (farthest depth)
- clearValues[1].depthStencil = {1.0f,0 }; // Clear depth to1.0f
+ clearValues[1].depthStencil = {1.0f,0 };
 
  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
  renderPassInfo.pClearValues = clearValues.data();
 
  vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
- // Set viewport and scissor
  VkViewport viewport = GetViewport();
  vkCmdSetViewport(cmd,0,1, &viewport);
 
  VkRect2D scissor = GetScissor();
  vkCmdSetScissor(cmd,0,1, &scissor);
-
- // Note: pipeline will be bound per-draw so a debug no-cull pipeline
- // can be selected for the first few seconds. Do not bind a global
- // pipeline here.
 }
 
 void WalnutGraphics::EndCommands() {
@@ -894,7 +845,7 @@ VkViewport WalnutGraphics::GetViewport() {
 
 VkRect2D WalnutGraphics::GetScissor() {
  VkRect2D scissor{};
- scissor.offset = {0,0 };
+ scissor.offset = {0,0};
  scissor.extent = { m_RenderWidth, m_RenderHeight };
 
  return scissor;
@@ -921,7 +872,6 @@ void WalnutGraphics::RenderBuffer(BufferHandle handle, std::uint32_t vertex_coun
  VkDeviceSize offset =0;
  VkCommandBuffer cmd = m_CommandBuffers[m_CurrentFrame];
  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout,0,1, &m_DescriptorSet,0, nullptr);
- // Ensure push constants are set while recording
  vkCmdPushConstants(cmd, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,0, sizeof(glm::mat4), &m_CurrentModel);
  vkCmdBindVertexBuffers(cmd,0,1, &handle.buffer, &offset);
  vkCmdDraw(cmd, vertex_count,1,0,0);
@@ -967,18 +917,14 @@ void WalnutGraphics::RenderIndexedBuffer(BufferHandle vertex_buffer, BufferHandl
 
 BufferHandle WalnutGraphics::CreateVertexBuffer(gsl::span<Vertex> vertices) {
  VkDeviceSize size = sizeof(Vertex) * vertices.size();
- BufferHandle staging_handle = CreateBuffer(
- size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
- VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+ BufferHandle staging_handle = CreateBuffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
  void* data;
  vkMapMemory(m_Device, staging_handle.memory,0, size,0, &data);
  std::memcpy(data, vertices.data(), size);
  vkUnmapMemory(m_Device, staging_handle.memory);
 
- BufferHandle gpu_handle = CreateBuffer(
- size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
- VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+ BufferHandle gpu_handle = CreateBuffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
  VkCommandBuffer transient_commands = BeginTransientCommandBuffer();
 
@@ -998,18 +944,14 @@ BufferHandle WalnutGraphics::CreateVertexBuffer(gsl::span<Vertex> vertices) {
 BufferHandle WalnutGraphics::CreateIndexBuffer(gsl::span<std::uint32_t> indices) {
  VkDeviceSize size = sizeof(std::uint32_t) * indices.size();
 
- BufferHandle staging_handle = CreateBuffer(
- size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
- VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+ BufferHandle staging_handle = CreateBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
  void* data;
  vkMapMemory(m_Device, staging_handle.memory,0, size,0, &data);
  std::memcpy(data, indices.data(), size);
  vkUnmapMemory(m_Device, staging_handle.memory);
 
- BufferHandle gpu_handle = CreateBuffer(
- size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
- VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+ BufferHandle gpu_handle = CreateBuffer(size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
  VkCommandBuffer transient_commands = BeginTransientCommandBuffer();
 
@@ -1040,8 +982,7 @@ std::uint32_t WalnutGraphics::FindMemoryType(std::uint32_t type_bits_filter, VkM
  vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
 
  for (uint32_t i =0; i < memProperties.memoryTypeCount; i++) {
- if ((type_bits_filter & (1 << i)) &&
- (memProperties.memoryTypes[i].propertyFlags & required_properties) == required_properties) {
+ if ((type_bits_filter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & required_properties) == required_properties) {
  return i;
  }
  }
@@ -1239,18 +1180,15 @@ void WalnutGraphics::CreateDefaultTexture() {
  if (m_DefaultTextureImage != VK_NULL_HANDLE)
  return; // already created
 
- // Small white pixel
- uint8_t pixel[4] = {255,255,255,255 };
+ uint8_t pixel[4] = {255,255,255,255};
  VkDeviceSize imageSize =4;
 
- // Create staging buffer
  BufferHandle staging = CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
  void* data;
  vkMapMemory(m_Device, staging.memory,0, imageSize,0, &data);
  memcpy(data, pixel, static_cast<size_t>(imageSize));
  vkUnmapMemory(m_Device, staging.memory);
 
- // Create image
  VkImageCreateInfo imageInfo{};
  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
  imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1285,7 +1223,6 @@ void WalnutGraphics::CreateDefaultTexture() {
 
  vkBindImageMemory(m_Device, m_DefaultTextureImage, m_DefaultTextureImageMemory,0);
 
- // Copy staging buffer to image
  VkCommandBuffer cmd = BeginTransientCommandBuffer();
 
  VkImageMemoryBarrier barrier{};
@@ -1318,7 +1255,6 @@ void WalnutGraphics::CreateDefaultTexture() {
 
  vkCmdCopyBufferToImage(cmd, staging.buffer, m_DefaultTextureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1, &region);
 
- // Transition to shader read
  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
  barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -1328,7 +1264,6 @@ void WalnutGraphics::CreateDefaultTexture() {
 
  EndTransientCommandBuffer(cmd);
 
- // Create image view
  VkImageViewCreateInfo viewInfo{};
  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
  viewInfo.image = m_DefaultTextureImage;
@@ -1341,7 +1276,6 @@ void WalnutGraphics::CreateDefaultTexture() {
  viewInfo.subresourceRange.layerCount =1;
 
  if (vkCreateImageView(m_Device, &viewInfo, nullptr, &m_DefaultTextureImageView) != VK_SUCCESS) {
- // cleanup
  vkDestroyImage(m_Device, m_DefaultTextureImage, nullptr);
  vkFreeMemory(m_Device, m_DefaultTextureImageMemory, nullptr);
  m_DefaultTextureImage = VK_NULL_HANDLE;
@@ -1350,7 +1284,6 @@ void WalnutGraphics::CreateDefaultTexture() {
  throw std::runtime_error("Failed to create default texture image view");
  }
 
- // Create sampler
  VkSamplerCreateInfo samplerInfo{};
  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
  samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -1380,8 +1313,97 @@ void WalnutGraphics::CreateDefaultTexture() {
  throw std::runtime_error("Failed to create default texture sampler");
  }
 
- // cleanup staging
  DestroyBuffer(staging);
+}
+
+// Implementation of FindSupportedFormat from the tutorial
+static VkFormat FindSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+ for (VkFormat format : candidates) {
+ VkFormatProperties props;
+ vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+ if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+ return format;
+ }
+ if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+ return format;
+ }
+ }
+
+ throw std::runtime_error("Failed to find supported format!");
+}
+
+// Static helpers (file-local)
+static void HelperTransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
+{
+ VkImageMemoryBarrier barrier{};
+ barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+ barrier.oldLayout = oldLayout;
+ barrier.newLayout = newLayout;
+ barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+ barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+ barrier.image = image;
+
+ if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+ barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+ } else {
+ barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+ }
+
+ barrier.subresourceRange.baseMipLevel =0;
+ barrier.subresourceRange.levelCount = mipLevels;
+ barrier.subresourceRange.baseArrayLayer =0;
+ barrier.subresourceRange.layerCount =1;
+
+ VkPipelineStageFlags sourceStage;
+ VkPipelineStageFlags destinationStage;
+
+ if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+ barrier.srcAccessMask =0;
+ barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+ sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+ destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+ } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+ barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+ barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+ sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+ destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+ } else {
+ barrier.srcAccessMask =0;
+ barrier.dstAccessMask =0;
+ sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+ destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+ }
+
+ vkCmdPipelineBarrier(cmd, sourceStage, destinationStage,0,0, nullptr,0, nullptr,1, &barrier);
+}
+
+static void HelperCopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+{
+ VkBufferImageCopy region{};
+ region.bufferOffset =0;
+ region.bufferRowLength =0;
+ region.bufferImageHeight =0;
+ region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+ region.imageSubresource.mipLevel =0;
+ region.imageSubresource.baseArrayLayer =0;
+ region.imageSubresource.layerCount =1;
+ region.imageOffset = {0,0,0};
+ region.imageExtent = { width, height,1 };
+
+ vkCmdCopyBufferToImage(cmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1, &region);
+}
+
+// Member wrappers so Texture can call via m_Graphics
+void WalnutGraphics::TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
+{
+ HelperTransitionImageLayout(cmd, image, format, oldLayout, newLayout, mipLevels);
+}
+
+void WalnutGraphics::CopyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+{
+ HelperCopyBufferToImage(cmd, buffer, image, width, height);
 }
 
 } // namespace veng

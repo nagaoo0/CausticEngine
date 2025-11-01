@@ -118,40 +118,11 @@ void Texture::CreateImageAndUpload(const unsigned char* pixels, int width, int h
 
  vkBindImageMemory(m_Graphics->m_Device, m_Image, m_ImageMemory,0);
 
- // Transition and copy
+ // Transition image to transfer-dst and copy staging buffer
  VkCommandBuffer cmd = m_Graphics->BeginTransientCommandBuffer();
-
- VkImageMemoryBarrier barrier{};
- barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
- barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
- barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
- barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
- barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
- barrier.image = m_Image;
- barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
- barrier.subresourceRange.baseMipLevel =0;
- barrier.subresourceRange.levelCount =1; // only base level
- barrier.subresourceRange.baseArrayLayer =0;
- barrier.subresourceRange.layerCount =1;
- barrier.srcAccessMask =0;
- barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
- vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
-
- VkBufferImageCopy region{};
- region.bufferOffset =0;
- region.bufferRowLength =0;
- region.bufferImageHeight =0;
- region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
- region.imageSubresource.mipLevel =0;
- region.imageSubresource.baseArrayLayer =0;
- region.imageSubresource.layerCount =1;
- region.imageOffset = {0,0,0};
- region.imageExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height),1 };
-
- vkCmdCopyBufferToImage(cmd, staging.buffer, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1, &region);
-
- // Do NOT transition all mips to SHADER_READ here - leave base level in TRANSFER_DST for mip generation
+ m_Graphics->TransitionImageLayout(cmd, m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1);
+ m_Graphics->CopyBufferToImage(cmd, staging.buffer, m_Image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+ // Leave base level in TRANSFER_DST for mip generation
  m_Graphics->EndTransientCommandBuffer(cmd);
 
  // cleanup staging buffer explicitly
