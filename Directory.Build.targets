@@ -1,0 +1,12 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <!-- Automatically compile GLSL shaders to SPIR-V before building the solution.
+ This will invoke tools\compile_shaders.ps1 if present in the repo root. -->
+ <PropertyGroup>
+ <CompileShadersScript>$(MSBuildThisFileDirectory)tools\compile_shaders.ps1</CompileShadersScript>
+ </PropertyGroup>
+
+ <Target Name="CompileShaders" BeforeTargets="BeforeBuild" Condition="Exists('$(CompileShadersScript)')">
+ <Message Text="Running shader compilation script: $(CompileShadersScript)" Importance="high" />
+ <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(CompileShadersScript)&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+ </Target>
+</Project>

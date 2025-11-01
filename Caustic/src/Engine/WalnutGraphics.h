@@ -42,6 +42,9 @@ class WalnutGraphics final {
   uint32_t GetRenderWidth() const;
   uint32_t GetRenderHeight() const;
 
+  // Texture loading
+  void LoadTextureFromFile(const std::string& filename);
+
  private:
   void CreateRenderTargets();
   void CreateRenderPass();
@@ -111,6 +114,12 @@ class WalnutGraphics final {
   VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
   BufferHandle m_UniformBuffer;
   void* m_UniformBufferLocation = nullptr;
+
+  // Texture resources
+  VkImage m_TextureImage = VK_NULL_HANDLE;
+  VkDeviceMemory m_TextureImageMemory = VK_NULL_HANDLE;
+  VkImageView m_TextureImageView = VK_NULL_HANDLE;
+  VkSampler m_TextureSampler = VK_NULL_HANDLE;
 
   // Render state
   uint32_t m_RenderWidth =800;

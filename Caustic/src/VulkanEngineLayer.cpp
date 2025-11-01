@@ -57,23 +57,30 @@ void VulkanEngineLayer::InitializeEngine()
  throw std::runtime_error("Failed to initialize Vulkan graphics engine");
  }
 
- // Create a quad face using two triangles in world space
- std::array<veng::Vertex, 4> vertices = {
- veng::Vertex{glm::vec3{-0.5f, -0.5f,0.0f}, glm::vec3{0.0f,0.0f,0.0f}},
- veng::Vertex{glm::vec3{0.5f, -0.5f,0.0f}, glm::vec3{1.0f,0.0f,0.0f}},
- veng::Vertex{glm::vec3{0.5f,0.5f,0.0f}, glm::vec3{1.0f,1.0f,0.0f}},
- veng::Vertex{glm::vec3{-0.5f,0.5f,0.0f}, glm::vec3{0.0f,1.0f,0.0f}},
+ // Create a quad face using two triangles in world space, with texcoords
+ std::array<veng::Vertex,4> vertices = {
+ veng::Vertex{glm::vec3{-0.5f, -0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{0.0f,1.0f}},
+ veng::Vertex{glm::vec3{0.5f, -0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{1.0f,1.0f}},
+ veng::Vertex{glm::vec3{0.5f,0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{1.0f,0.0f}},
+ veng::Vertex{glm::vec3{-0.5f,0.5f,0.0f}, glm::vec3{1.0f,1.0f,1.0f}, glm::vec2{0.0f,0.0f}},
  };
 
  m_VertexBuffer = m_Graphics->CreateVertexBuffer(vertices);
 
  // Define indices for two triangles forming the quad
- std::array<std::uint32_t, 6> indices = {
+ std::array<std::uint32_t,6> indices = {
 0,1,2, // First triangle (Bottom-left, Bottom-right, Top-right)
 2,3,0 // Second triangle (Bottom-left, Top-right, Top-left)
  };
 
  m_IndexBuffer = m_Graphics->CreateIndexBuffer(indices);
+
+ // Load default texture from textures/texture.png
+ try {
+ m_Graphics->LoadTextureFromFile("textures/texture.png");
+ } catch (const std::exception& e) {
+ std::cout << "Warning: failed to load texture: " << e.what() << std::endl;
+ }
 
  // Proper camera setup for normal3D rendering
  glm::mat4 projection = glm::perspective(glm::radians(m_CameraSettings.fovDegrees), static_cast<float>(m_Graphics->GetRenderWidth()) / static_cast<float>(m_Graphics->GetRenderHeight()), m_CameraSettings.nearClip,10.0f);
@@ -89,7 +96,7 @@ void VulkanEngineLayer::InitializeEngine()
  LogMat4(model, "Model Matrix");
 
  // Initialize runtime camera state
- m_CurrentCameraPosition = glm::vec3(2.0f,2.0f,2.0f);
+ m_CurrentCameraPosition = glm::vec3(2.0f,1.0f,2.0f);
  m_CurrentCameraTarget = glm::vec3(0.0f,0.0f,0.0f);
 
  m_EngineInitialized = true;
