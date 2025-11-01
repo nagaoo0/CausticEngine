@@ -45,7 +45,11 @@ void Texture::LoadFromFile(const std::string& filename)
 
 void Texture::WriteDescriptor(VkDevice device, VkDescriptorSet dstSet, uint32_t binding) const
 {
+ // Defensive checks
+ if (device == VK_NULL_HANDLE) return;
+ if (dstSet == VK_NULL_HANDLE) return;
  if (m_ImageView == VK_NULL_HANDLE || m_Sampler == VK_NULL_HANDLE) return;
+
  VkDescriptorImageInfo imageInfo{};
  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
  imageInfo.imageView = m_ImageView;
@@ -92,7 +96,9 @@ void Texture::CreateImageAndUpload(const unsigned char* pixels, int width, int h
  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
  if (vkCreateImage(m_Graphics->m_Device, &imageInfo, nullptr, &m_Image) != VK_SUCCESS) {
- DestroyBuffer(staging); // uses WalnutGraphics private; friend
+ // cleanup staging explicitly
+ vkDestroyBuffer(m_Graphics->m_Device, staging.buffer, nullptr);
+ vkFreeMemory(m_Graphics->m_Device, staging.memory, nullptr);
  throw std::runtime_error("Failed to create image");
  }
 
@@ -104,7 +110,9 @@ void Texture::CreateImageAndUpload(const unsigned char* pixels, int width, int h
  alloc.memoryTypeIndex = m_Graphics->FindMemoryType(memReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
  if (vkAllocateMemory(m_Graphics->m_Device, &alloc, nullptr, &m_ImageMemory) != VK_SUCCESS) {
- DestroyBuffer(staging);
+ // cleanup staging explicitly
+ vkDestroyBuffer(m_Graphics->m_Device, staging.buffer, nullptr);
+ vkFreeMemory(m_Graphics->m_Device, staging.memory, nullptr);
  throw std::runtime_error("Failed to allocate image memory");
  }
 
@@ -122,7 +130,7 @@ void Texture::CreateImageAndUpload(const unsigned char* pixels, int width, int h
  barrier.image = m_Image;
  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
  barrier.subresourceRange.baseMipLevel =0;
- barrier.subresourceRange.levelCount =1;
+ barrier.subresourceRange.levelCount =1; // only base level
  barrier.subresourceRange.baseArrayLayer =0;
  barrier.subresourceRange.layerCount =1;
  barrier.srcAccessMask =0;
@@ -143,18 +151,12 @@ void Texture::CreateImageAndUpload(const unsigned char* pixels, int width, int h
 
  vkCmdCopyBufferToImage(cmd, staging.buffer, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1, &region);
 
- // Transition first mip level to SHADER_READ for generation
- barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
- barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
- barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
- barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
- barrier.subresourceRange.levelCount = m_MipLevels; // we'll generate all mips
-
- vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
-
+ // Do NOT transition all mips to SHADER_READ here - leave base level in TRANSFER_DST for mip generation
  m_Graphics->EndTransientCommandBuffer(cmd);
 
- m_Graphics->DestroyBuffer(staging);
+ // cleanup staging buffer explicitly
+ vkDestroyBuffer(m_Graphics->m_Device, staging.buffer, nullptr);
+ vkFreeMemory(m_Graphics->m_Device, staging.memory, nullptr);
 
  // Generate mipmaps using GPU
  GenerateMipmaps(width, height);
@@ -230,13 +232,23 @@ void Texture::GenerateMipmaps(int width, int height)
  int32_t mipHeight = height;
 
  for (uint32_t i =1; i < m_MipLevels; ++i) {
+ // Transition previous level (i-1) from TRANSFER_DST_OPTIMAL to TRANSFER_SRC_OPTIMAL
  barrier.subresourceRange.baseMipLevel = i -1;
- barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+ barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
  barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
- barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+ barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
  barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
- vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
+ vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
+
+ // Transition current level (i) from UNDEFINED to TRANSFER_DST_OPTIMAL
+ barrier.subresourceRange.baseMipLevel = i;
+ barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+ barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+ barrier.srcAccessMask =0;
+ barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+ vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,0,0, nullptr,0, nullptr,1, &barrier);
 
  VkImageBlit blit{};
  blit.srcOffsets[0] = {0,0,0};
@@ -255,6 +267,8 @@ void Texture::GenerateMipmaps(int width, int height)
 
  vkCmdBlitImage(cmd, m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1, &blit, VK_FILTER_LINEAR);
 
+ // Transition previous level (i-1) from TRANSFER_SRC_OPTIMAL to SHADER_READ_ONLY_OPTIMAL
+ barrier.subresourceRange.baseMipLevel = i -1;
  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
  barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -266,7 +280,7 @@ void Texture::GenerateMipmaps(int width, int height)
  if (mipHeight >1) mipHeight /=2;
  }
 
- // Transition last mip level to SHADER_READ
+ // Transition last mip level to SHADER_READ_ONLY_OPTIMAL
  barrier.subresourceRange.baseMipLevel = m_MipLevels -1;
  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

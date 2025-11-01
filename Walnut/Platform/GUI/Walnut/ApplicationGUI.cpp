@@ -201,9 +201,15 @@ static void SetupVulkan(const char** extensions, uint32_t extensions_count)
 		create_info.pQueueCreateInfos = queue_info;
 		create_info.enabledExtensionCount = device_extension_count;
 		create_info.ppEnabledExtensionNames = device_extensions;
+
+		// Enable device features we rely on (e.g. anisotropic filtering for samplers)
+		VkPhysicalDeviceFeatures deviceFeatures{};
+		deviceFeatures.samplerAnisotropy = VK_TRUE;
+		create_info.pEnabledFeatures = &deviceFeatures;
+
 		err = vkCreateDevice(g_PhysicalDevice, &create_info, g_Allocator, &g_Device);
 		check_vk_result(err);
-		vkGetDeviceQueue(g_Device, g_QueueFamily, 0, &g_Queue);
+		vkGetDeviceQueue(g_Device, g_QueueFamily,0, &g_Queue);
 	}
 
 	// Create Descriptor Pool
@@ -700,8 +706,8 @@ namespace Walnut {
 
 		// Logo
 		{
-			const int logoWidth = 48;// m_LogoTex->GetWidth();
-			const int logoHeight = 48;// m_LogoTex->GetHeight();
+			const int logoWidth =48;// m_LogoTex->GetWidth();
+			const int logoHeight =48;// m_LogoTex->GetHeight();
 			const ImVec2 logoOffset( windowPadding.x, windowPadding.y + titlebarVerticalOffset);
 			const ImVec2 logoRectStart = { ImGui::GetItemRectMin().x + logoOffset.x, ImGui::GetItemRectMin().y + logoOffset.y };
 			const ImVec2 logoRectMax = { logoRectStart.x + logoWidth, logoRectStart.y + logoHeight };

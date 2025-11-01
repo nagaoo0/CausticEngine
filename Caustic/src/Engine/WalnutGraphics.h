@@ -64,6 +64,7 @@ class WalnutGraphics final {
 
   void BeginCommands();
   void EndCommands();
+  void CreateDefaultTexture();
 
   std::vector<char> ReadFile(const std::string& filename);
   VkShaderModule CreateShaderModule(const std::vector<char>& code);
@@ -119,6 +120,12 @@ class WalnutGraphics final {
 
   // Texture helper (owns image/view/sampler and mipmaps)
   std::unique_ptr<Texture> m_Texture;
+
+  // Default placeholder texture used when no texture is loaded
+  VkImage m_DefaultTextureImage = VK_NULL_HANDLE;
+  VkDeviceMemory m_DefaultTextureImageMemory = VK_NULL_HANDLE;
+  VkImageView m_DefaultTextureImageView = VK_NULL_HANDLE;
+  VkSampler m_DefaultTextureSampler = VK_NULL_HANDLE;
 
   // Render state
   uint32_t m_RenderWidth =800;
